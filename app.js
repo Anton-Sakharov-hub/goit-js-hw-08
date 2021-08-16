@@ -1,3 +1,7 @@
+
+// перебрать массив и создать галлерею превью
+// назначить слушателя событий, при клике открывается модальное окно с большими картинками
+
 const galleryItems = [
   {
     preview:
@@ -63,3 +67,129 @@ const galleryItems = [
     description: 'Lighthouse Coast Sea',
   },
 ];
+
+
+// создает разметку галереи
+
+const markup = function (galleryItems) {
+  return galleryItems.map(({ preview, original, description }, index) => {
+    return `
+    <li class="gallery__item">
+      <a class="gallery__link" href=${original}>
+        <img class="gallery__image" src="${preview}"
+          data-source="${original}" data-index="${index}" alt="${description}" />
+      </a>
+    </li>
+    `;
+  }).join('');
+};
+
+const galleryListRefs = document.querySelector('.js-gallery');
+galleryListRefs.insertAdjacentHTML('beforeend', markup(galleryItems));
+
+// при нажатии на картинку срабатывает слушатель событий на списке
+// отменяет дефолтное поведение ссылки. Запускает колбек, который
+// 1. проверяет куда нажали
+// 2. передает из атрибута ссылку на большую картинку в lightbox__img
+// 3. Назначет lightbox -у класс .open
+
+const lightboxRefs = document.querySelector('.lightbox');
+const lightboxImg = document.querySelector('.lightbox__image');
+
+// функция открытия модального окна
+const lightboxOpenClick = (event) => {
+  event.preventDefault();
+
+  const target = event.target;
+  const targetDataset = target.dataset.source;
+
+    if (target.nodeName !== 'IMG') return;
+    
+    lightboxImg.removeAttribute('src'); // очистка src от предыдущего пути при повторном открытие модального окна
+    lightboxImg.setAttribute('src', `${targetDataset}`);
+    lightboxImg.setAttribute('data-index', `${target.dataset.index}`);
+
+  lightboxRefs.classList.add('is-open');
+  
+  window.addEventListener("keydown", closeLightboxClicker);
+  lightboxRefs.addEventListener('click', closeLightboxClicker);
+};
+
+galleryListRefs.addEventListener('click', lightboxOpenClick);
+
+// функция закрытия модального окна
+const closeLightboxClicker = (event) => {
+  const target = event.target;
+
+ // функция для проверки класса области event.target по которой закрывает lightbox
+  const removeIsOpenClass = () => {
+    const hasButtonClass = target.classList.contains('lightbox__button');
+    const hasOverlayClass = target.classList.contains('lightbox__overlay');
+
+    if (hasButtonClass || hasOverlayClass) {
+      lightboxRefs.classList.remove('is-open');
+    };
+  };
+  
+  removeIsOpenClass();
+
+  let indexImgLightbox = parseInt(lightboxImg.dataset.index);
+  
+  // функция для перелистывания модалки по кнопкам prev и next
+  const setIndexAttrImgLightbox = () => {
+    if (!galleryItems[indexImgLightbox]) return;
+
+    lightboxImg.setAttribute('src', `${galleryItems[indexImgLightbox].original}`);
+    lightboxImg.setAttribute('data-index', `${indexImgLightbox}`);
+  };
+
+  if (target.dataset.action === "prev-img") {
+
+    indexImgLightbox -= 1;
+
+    setIndexAttrImgLightbox();
+  };
+
+  if (target.dataset.action === "next-img") {
+   
+    indexImgLightbox += 1;
+
+    setIndexAttrImgLightbox();
+  };
+
+  // закрывает по Esc
+  const closeLightboxByEsc = () => {
+    const { code } = event;
+
+    if (code === "Escape") {
+      lightboxRefs.classList.remove('is-open');
+    };
+  };
+
+  closeLightboxByEsc();
+
+  // убирает слушатели для закрытия модального окна
+  const removeEventListnersLightbox = () => {
+    const hasOpenClass = lightboxRefs.classList.contains('is-open');
+    if (!hasOpenClass) {
+      window.removeEventListener("keydown", closeLightboxClicker);
+      lightboxRefs.removeEventListener('click', closeLightboxClicker);
+    };
+  }
+
+  removeEventListnersLightbox();
+};
+
+
+
+
+
+  // Разметка галереи
+
+  // <li class="gallery__item">
+  //   <a class="gallery__link" href="https://cdn.pixabay.com/photo/2010/12/13/10/13/tulips-2546_1280.jpg">
+  //     <img class="gallery__image" src="https://cdn.pixabay.com/photo/2010/12/13/10/13/tulips-2546__340.jpg"
+  //       data-source="https://cdn.pixabay.com/photo/2010/12/13/10/13/tulips-2546_1280.jpg" alt="Tulips" />
+  //   </a>
+  // </li>
+
